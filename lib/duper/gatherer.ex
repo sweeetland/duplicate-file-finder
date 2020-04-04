@@ -9,7 +9,7 @@ defmodule Duper.Gatherer do
     GenServer.start_link(__MODULE__, worker_count, name: @me)
   end
 
-  def done do
+  def done() do
     GenServer.cast(@me, :done)
   end
 
@@ -18,9 +18,8 @@ defmodule Duper.Gatherer do
   end
 
   # Server
-
   def init(worker_count) do
-    Process.send(self(), :kickoff, 0)
+    Process.send_after(self(), :kickoff, 0)
     {:ok, worker_count}
   end
 
@@ -32,7 +31,7 @@ defmodule Duper.Gatherer do
   end
 
   def handle_cast(:done, _worker_count = 1) do
-    report_result()
+    report_results()
     System.halt(0)
   end
 
@@ -40,12 +39,12 @@ defmodule Duper.Gatherer do
     {:noreply, worker_count - 1}
   end
 
-  def handle_cast({:result, path, hash}, worked_count) do
+  def handle_cast({:result, path, hash}, worker_count) do
     Duper.Results.add_hash_for(path, hash)
-    {:noreply, worked_count}
+    {:noreply, worker_count}
   end
 
-  defp report_result() do
+  defp report_results() do
     IO.puts("Results: \n")
 
     Duper.Results.find_duplicates()
